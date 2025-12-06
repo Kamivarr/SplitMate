@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "izHBbWLSYyPwh9hKYCj1tyuyOsv4JeS43V/29RwtiGc=",
+  "Source": "SplitMate.Api",
+  "BasePath": "_content/SplitMate.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
