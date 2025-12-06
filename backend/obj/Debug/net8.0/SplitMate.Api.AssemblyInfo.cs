@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SplitMate.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5c6a11ecaa5b31a2dfff4a8b713f19192363be55")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+eb448980302d2e31d91ebcb58c498adfc745f0f8")]
 [assembly: System.Reflection.AssemblyProductAttribute("SplitMate.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SplitMate.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
