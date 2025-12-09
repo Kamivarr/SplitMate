@@ -3,7 +3,6 @@ using SplitMate.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Konfiguracja DbContext (pobiera ConnectionString z appsettings lub zmiennej środowiskowej)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
                        ?? builder.Configuration["ConnectionStrings__DefaultConnection"]
                        ?? throw new InvalidOperationException("No connection string configured.");
@@ -11,30 +10,37 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Dodaj MVC + Swagger
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Pozwól na CORS z localhost (frontend w przyszłości)
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-    {
-        policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin();
-    });
+        policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
 });
 
 var app = builder.Build();
 
-// Automatyczne zastosowanie migracji i seed (jeśli DB gotowa)
+// Automatyczne migracje + seed danych
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    // Czekamy chwilę na DB w środowisku Dockera (opcjonalnie można dodać retry)
-    // Tutaj proste podejście: próbujemy zastosować migracje i seed; jeśli baza nie jest jeszcze dostępna, aplikacja może się nie uruchomić — docker-compose będzie restartować usługę.
-    db.Database.Migrate();
-    DbSeeder.Seed(db);
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.Migrate();
+        DbSeeder.Seed(db);
+    }
+    catch
+    {
+        // jeśli DB jeszcze nie gotowa, ignorujemy — kontener wystartuje i spróbuje ponownie
+    }
 }
 
 if (app.Environment.IsDevelopment())
@@ -42,6 +48,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Nasłuch na 0.0.0.0, żeby był dostępny z innych kontenerów i hosta
+app.Urls.Clear();
+app.Urls.Add("http://0.0.0.0:5000");
 
 app.UseCors();
 app.MapControllers();

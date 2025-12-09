@@ -16,6 +16,9 @@ namespace SplitMate.Api.Controllers
             _context = context;
         }
 
+        // ========================================================================
+        // GET /api/groups
+        // ========================================================================
         [HttpGet]
         public IActionResult GetAll()
         {
@@ -25,6 +28,9 @@ namespace SplitMate.Api.Controllers
             return Ok(groups);
         }
 
+        // ========================================================================
+        // GET /api/groups/{id}
+        // ========================================================================
         [HttpGet("{id}")]
         public IActionResult Get(int id)
         {
@@ -35,29 +41,67 @@ namespace SplitMate.Api.Controllers
             return Ok(group);
         }
 
-        [HttpPost]
-        public IActionResult Create([FromBody] Group group)
+        // ========================================================================
+        // DTO do tworzenia grupy
+        // ========================================================================
+        public class CreateGroupDto
         {
+            public string Name { get; set; } = "";
+            public List<int> MemberIds { get; set; } = new();
+        }
+
+        // ========================================================================
+        // POST /api/groups
+        // ========================================================================
+        [HttpPost]
+        public IActionResult Create([FromBody] CreateGroupDto dto)
+        {
+            var group = new Group
+            {
+                Name = dto.Name,
+                Members = _context.Users
+                    .Where(u => dto.MemberIds.Contains(u.Id))
+                    .ToList()
+            };
+
             _context.Groups.Add(group);
             _context.SaveChanges();
+
             return CreatedAtAction(nameof(Get), new { id = group.Id }, group);
         }
 
+        // ========================================================================
+        // DTO do aktualizacji grupy
+        // ========================================================================
+        public class UpdateGroupDto
+        {
+            public string Name { get; set; } = "";
+            public List<int> MemberIds { get; set; } = new();
+        }
+
+        // ========================================================================
+        // PUT /api/groups/{id}
+        // ========================================================================
         [HttpPut("{id}")]
-        public IActionResult Update(int id, [FromBody] Group updatedGroup)
+        public IActionResult Update(int id, [FromBody] UpdateGroupDto dto)
         {
             var group = _context.Groups
                 .Include(g => g.Members)
                 .FirstOrDefault(g => g.Id == id);
             if (group == null) return NotFound();
 
-            group.Name = updatedGroup.Name;
-            group.Members = updatedGroup.Members;
+            group.Name = dto.Name;
+            group.Members = _context.Users
+                .Where(u => dto.MemberIds.Contains(u.Id))
+                .ToList();
 
             _context.SaveChanges();
             return NoContent();
         }
 
+        // ========================================================================
+        // DELETE /api/groups/{id}
+        // ========================================================================
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {

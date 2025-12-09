@@ -102,3 +102,4 @@
 /home/kamivarr/Projects/SplitMate/backend/obj/Debug/net8.0/SplitMate.Api.pdb
 /home/kamivarr/Projects/SplitMate/backend/obj/Debug/net8.0/SplitMate.Api.genruntimeconfig.cache
 /home/kamivarr/Projects/SplitMate/backend/obj/Debug/net8.0/ref/SplitMate.Api.dll
+/home/kamivarr/Projects/SplitMate/backend/obj/Debug/net8.0/SplitMate.Api.sourcelink.json

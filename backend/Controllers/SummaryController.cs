@@ -21,33 +21,47 @@ namespace SplitMate.Api.Controllers
         {
             var expenses = _context.Expenses
                 .Include(e => e.SharedWithUsers)
+                .Include(e => e.PaidByUser)
                 .Where(e => e.GroupId == groupId)
                 .ToList();
 
-            var balances = new Dictionary<int, decimal>();
+            // słownik bilansów: (odUserId -> doUserId) = kwota
+            var balances = new Dictionary<(int fromUserId, int toUserId), decimal>();
 
             foreach (var expense in expenses)
             {
+                if (expense.SharedWithUsers.Count == 0) continue;
+
                 var share = expense.Amount / expense.SharedWithUsers.Count;
+
                 foreach (var user in expense.SharedWithUsers)
                 {
                     if (user.Id == expense.PaidByUserId) continue;
-                    if (!balances.ContainsKey(user.Id)) balances[user.Id] = 0;
-                    balances[user.Id] -= share;
 
-                    if (!balances.ContainsKey(expense.PaidByUserId)) balances[expense.PaidByUserId] = 0;
-                    balances[expense.PaidByUserId] += share;
+                    var key = (fromUserId: user.Id, toUserId: expense.PaidByUserId);
+
+                    // sumujemy wszystkie wydatki z tej pary
+                    if (!balances.ContainsKey(key))
+                        balances[key] = 0;
+                    balances[key] += share;
                 }
             }
 
-            // Transformacja na listę „kto komu ile”
-            var result = new List<object>();
-            foreach (var kvp in balances.Where(b => b.Value > 0))
+            // transformacja na listę z nazwami użytkowników
+            var result = balances.Select(b =>
             {
-                result.Add(new { toUserId = kvp.Key, amount = kvp.Value });
-            }
+                var fromName = _context.Users.FirstOrDefault(u => u.Id == b.Key.fromUserId)?.Name ?? "Nieznany";
+                var toName = _context.Users.FirstOrDefault(u => u.Id == b.Key.toUserId)?.Name ?? "Nieznany";
+                return new
+                {
+                    fromUserName = fromName,
+                    toUserName = toName,
+                    amount = Math.Round(b.Value, 2)
+                };
+            }).ToList();
 
             return Ok(result);
         }
+
     }
 }
