@@ -9,6 +9,7 @@ namespace SplitMate.Api.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [Tags("Zarządzanie Grupami")] // Grupowanie w Swaggerze
     public class GroupsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -18,100 +19,86 @@ namespace SplitMate.Api.Controllers
             _context = context;
         }
 
-        // ========================================================================
-        // GET /api/groups
-        // ========================================================================
         [HttpGet]
-        public IActionResult GetAll()
+        public async Task<ActionResult<IEnumerable<Group>>> GetAll()
         {
-            var groups = _context.Groups
-                .Include(g => g.Members)
-                .ToList();
-            return Ok(groups);
+            return await _context.Groups.Include(g => g.Members).ToListAsync();
         }
 
-        // ========================================================================
-        // GET /api/groups/{id}
-        // ========================================================================
         [HttpGet("{id}")]
-        public IActionResult Get(int id)
+        public async Task<ActionResult<Group>> Get(int id)
         {
-            var group = _context.Groups
+            var group = await _context.Groups
                 .Include(g => g.Members)
-                .FirstOrDefault(g => g.Id == id);
+                .Include(g => g.Expenses)
+                .FirstOrDefaultAsync(g => g.Id == id);
+
             if (group == null) return NotFound();
-            return Ok(group);
+            return group;
         }
 
-        // ========================================================================
-        // DTO do tworzenia grupy
-        // ========================================================================
-        public class CreateGroupDto
-        {
-            public string Name { get; set; } = "";
-            public List<int> MemberIds { get; set; } = new();
-        }
-
-        // ========================================================================
-        // POST /api/groups
-        // ========================================================================
         [HttpPost]
-        public IActionResult Create([FromBody] CreateGroupDto dto)
+        public async Task<ActionResult<Group>> Create([FromBody] CreateGroupDto dto)
         {
             var group = new Group
             {
                 Name = dto.Name,
-                Members = _context.Users
+                Members = await _context.Users
                     .Where(u => dto.MemberIds.Contains(u.Id))
-                    .ToList()
+                    .ToListAsync()
             };
 
             _context.Groups.Add(group);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(Get), new { id = group.Id }, group);
         }
 
-        // ========================================================================
-        // DTO do aktualizacji grupy
-        // ========================================================================
-        public class UpdateGroupDto
+        // --- Zarządzanie Członkami (Nowe!) ---
+
+        [HttpPost("{groupId}/members/{userId}")]
+        public async Task<IActionResult> AddMember(int groupId, int userId)
         {
-            public string Name { get; set; } = "";
-            public List<int> MemberIds { get; set; } = new();
+            var group = await _context.Groups.Include(g => g.Members).FirstOrDefaultAsync(g => g.Id == groupId);
+            var user = await _context.Users.FindAsync(userId);
+
+            if (group == null || user == null) return NotFound("Grupa lub użytkownik nie istnieje.");
+            if (group.Members.Any(m => m.Id == userId)) return BadRequest("Użytkownik jest już w grupie.");
+
+            group.Members.Add(user);
+            await _context.SaveChangesAsync();
+            return Ok($"Użytkownik {user.Name} dodany do grupy {group.Name}");
         }
 
-        // ========================================================================
-        // PUT /api/groups/{id}
-        // ========================================================================
-        [HttpPut("{id}")]
-        public IActionResult Update(int id, [FromBody] UpdateGroupDto dto)
+        [HttpDelete("{groupId}/members/{userId}")]
+        public async Task<IActionResult> RemoveMember(int groupId, int userId)
         {
-            var group = _context.Groups
-                .Include(g => g.Members)
-                .FirstOrDefault(g => g.Id == id);
+            var group = await _context.Groups.Include(g => g.Members).FirstOrDefaultAsync(g => g.Id == groupId);
             if (group == null) return NotFound();
 
-            group.Name = dto.Name;
-            group.Members = _context.Users
-                .Where(u => dto.MemberIds.Contains(u.Id))
-                .ToList();
+            var user = group.Members.FirstOrDefault(m => m.Id == userId);
+            if (user == null) return NotFound("Użytkownika nie ma w tej grupie.");
 
-            _context.SaveChanges();
+            group.Members.Remove(user);
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // ========================================================================
-        // DELETE /api/groups/{id}
-        // ========================================================================
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var group = _context.Groups.Find(id);
+            var group = await _context.Groups.FindAsync(id);
             if (group == null) return NotFound();
+
             _context.Groups.Remove(group);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             return NoContent();
+        }
+
+        public class CreateGroupDto
+        {
+            public string Name { get; set; } = string.Empty;
+            public List<int> MemberIds { get; set; } = new();
         }
     }
 }

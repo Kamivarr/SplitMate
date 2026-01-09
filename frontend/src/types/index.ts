@@ -1,7 +1,6 @@
 export interface User {
   id: number;
   name: string;
-  email?: string;
 }
 
 export interface Group {
@@ -16,6 +15,6 @@ export interface Expense {
   amount: number;
   groupId: number;
   paidByUserId: number;
+  isSettlement: boolean; 
   sharedWithUsers: User[];
-  date?: string;
 }

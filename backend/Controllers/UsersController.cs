@@ -8,6 +8,7 @@ namespace SplitMate.Api.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [Tags("Zarządzanie Użytkownikami")]
     public class UsersController : ControllerBase
     {
         private readonly AppDbContext _context;

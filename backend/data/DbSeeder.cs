@@ -14,7 +14,19 @@ namespace SplitMate.Api.Data
             AddUser(context, "Kamil", "kamil123");
             AddUser(context, "Anna", "anna123");
             context.SaveChanges();
-        }
+            if (!context.Expenses.Any())
+            {
+                var kamil = context.Users.First(u => u.Login == "kamil");
+                context.Expenses.Add(new Expense
+                {
+                    Description = "Pizza na integrację",
+                    Amount = 120.50m,
+                    PaidByUserId = kamil.Id,
+                });
+                context.SaveChanges();
+            }
+
+    }
 
         private static void AddUser(AppDbContext context, string name, string password)
         {

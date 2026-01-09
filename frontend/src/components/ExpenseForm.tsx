@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { Group, User } from "../types";
-import { createExpenseFromDto } from "../api/api"; // <- nowa funkcja API
+import { createExpense } from "../api/api"; // <- nowa funkcja API
 
 type Props = {
   group: Group;
@@ -39,7 +39,7 @@ export const ExpenseForm: React.FC<Props> = ({ group, users, onAdded }) => {
     };
 
     try {
-      await createExpenseFromDto(payload); // używamy endpointu /from-dto
+      await createExpense(payload); // używamy endpointu /from-dto
       setDescription("");
       setAmount("");
       if (onAdded) onAdded();
