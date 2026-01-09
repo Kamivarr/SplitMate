@@ -1,4 +1,4 @@
-# SplitMate — Lokalny setup (backend)
+# SplitMate — Lokalny setup
 
 Autor: Kamil Śliwa, indeks 177165
 
@@ -6,7 +6,7 @@ Autor: Kamil Śliwa, indeks 177165
 Prosty backend ASP.NET Core Web API + EF Core (PostgreSQL) do zarządzania wspólnymi wydatkami.
 Na start: modele (User, Group, Expense, ExpenseShare), DbContext, migracje i seed przykładowych danych, Docker + docker-compose.
 
-## Wymagania lokalne (opcjonalne)
+## Wymagania lokalne
 - Docker & Docker Compose
 - .NET SDK 8.0 (opcjonalne, jeśli chcesz uruchamiać/rozwijać lokalnie bez Dockera)
 - (opcjonalnie) dotnet-ef global tool dla migracji lokalnych
@@ -16,3 +16,5 @@ Na start: modele (User, Group, Expense, ExpenseShare), DbContext, migracje i see
 2. Uruchom:
    ```bash
    docker-compose up --build
+   dotnet ef database update
+

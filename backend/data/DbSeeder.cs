@@ -1,28 +1,34 @@
 using SplitMate.Api.Data;
 using SplitMate.Api.Models;
+using System.Security.Cryptography; // Potrzebne do haseł
+using System.Text;
 
-public static class DbSeeder
+namespace SplitMate.Api.Data
 {
-    public static void Seed(AppDbContext ctx)
+    public static class DbSeeder
     {
-        if (!ctx.Users.Any())
+        public static void Seed(AppDbContext context)
         {
-            var users = new List<User>
-            {
-                new User { Name = "Kamil" },
-                new User { Name = "Anna" },
-                new User { Name = "Tomek" }
-            };
-            ctx.Users.AddRange(users);
-            ctx.SaveChanges();
+            if (context.Users.Any()) return;
+
+            AddUser(context, "Kamil", "kamil123");
+            AddUser(context, "Anna", "anna123");
+            context.SaveChanges();
         }
 
-        if (!ctx.Groups.Any())
+        private static void AddUser(AppDbContext context, string name, string password)
         {
-            var group1 = new Group { Name = "Wspólne wydatki", Members = ctx.Users.Take(2).ToList() };
-            var group2 = new Group { Name = "Domowe", Members = ctx.Users.Skip(1).ToList() };
-            ctx.Groups.AddRange(group1, group2);
-            ctx.SaveChanges();
+            using var hmac = new HMACSHA512();
+            var salt = hmac.Key;
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+            context.Users.Add(new User
+            {
+                Name = name,
+                Login = name.ToLower(),
+                PasswordHash = hash,
+                PasswordSalt = salt
+            });
         }
     }
 }

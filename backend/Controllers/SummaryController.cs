@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SplitMate.Api.Data;
 using SplitMate.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SplitMate.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class SummaryController : ControllerBase

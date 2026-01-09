@@ -4,8 +4,9 @@ import { getUsers } from "../api/api";
 
 type UserContextType = {
   user: User | null;
-  setUser: (u: User | null) => void;
   users: User[];
+  loginUser: (userData: User, token: string) => void;
+  logoutUser: () => void;
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -17,23 +18,30 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [users, setUsers] = useState<User[]>([]);
 
+  const loginUser = (userData: User, token: string) => {
+    localStorage.setItem("splitmate_token", token);
+    localStorage.setItem("splitmate_user", JSON.stringify(userData));
+    setUser(userData);
+  };
+
+  const logoutUser = () => {
+    localStorage.removeItem("splitmate_token");
+    localStorage.removeItem("splitmate_user");
+    setUser(null);
+  };
+
   useEffect(() => {
+    // Pobieramy użytkowników (wymaga teraz tokena, więc jeśli nie jesteśmy zalogowani, backend rzuci 401)
     getUsers().then(setUsers).catch(() => {
-      // fallback sample users if backend not ready
-      setUsers([
-        { id: 1, name: "Kamil" },
-        { id: 2, name: "Anna" },
-        { id: 3, name: "Tomek" },
-      ]);
+      console.log("Niezalogowany lub błąd pobierania użytkowników");
     });
-  }, []);
+  }, [user]); // Odśwież listę po zalogowaniu
 
-  useEffect(() => {
-    if (user) localStorage.setItem("splitmate_user", JSON.stringify(user));
-    else localStorage.removeItem("splitmate_user");
-  }, [user]);
-
-  return <UserContext.Provider value={{ user, setUser, users }}>{children}</UserContext.Provider>;
+  return (
+    <UserContext.Provider value={{ user, users, loginUser, logoutUser }}>
+      {children}
+    </UserContext.Provider>
+  );
 };
 
 export function useUser() {
