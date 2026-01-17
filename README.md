@@ -58,9 +58,8 @@ graph TD
     end
 
     User -->|Przeglądarka| Frontend
-    Frontend -->|REST API (JSON + JWT)| Backend
+    Frontend -->|"REST API (JSON + JWT)"| Backend
     Backend -->|Entity Framework Core| Db
-
 ```
 
 ---
