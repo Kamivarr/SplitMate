@@ -102,7 +102,7 @@ using (var scope = app.Services.CreateScope())
         {
             Console.WriteLine($"Próba połączenia z bazą... (zostało prób: {retries})");
             db.Database.EnsureCreated(); 
-            DbSeeder.Seed(db);           
+            await DbSeeder.Seed(db);           
             Console.WriteLine("Sukces: Połączono z bazą i zainicjowano dane!");
             break; 
         }

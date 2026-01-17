@@ -9,7 +9,7 @@ namespace SplitMate.Api.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    [Tags("Zarządzanie Grupami")] // Grupowanie w Swaggerze
+    [Tags("Zarządzanie Grupami")]
     public class GroupsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -54,7 +54,24 @@ namespace SplitMate.Api.Controllers
             return CreatedAtAction(nameof(Get), new { id = group.Id }, group);
         }
 
-        // --- Zarządzanie Członkami (Nowe!) ---
+        // --- Nowy Endpoint: Procedura Składowana ---
+
+        [HttpPost("{id}/reset")]
+        public async Task<IActionResult> ResetGroup(int id)
+        {
+            // Sprawdzamy czy grupa istnieje
+            var group = await _context.Groups.FindAsync(id);
+            if (group == null) return NotFound("Grupa nie istnieje.");
+
+            // WYWOŁANIE PROCEDURY SKŁADOWANEJ
+            // W PostgreSQL procedury wywołuje się przez "CALL"
+            // {0} to bezpieczny parametr chroniący przed SQL Injection
+            await _context.Database.ExecuteSqlRawAsync("CALL ResetGroupExpenses({0})", id);
+
+            return Ok(new { message = $"Wydatki grupy '{group.Name}' zostały wyczyszczone przez procedurę składowaną." });
+        }
+
+        // --- Zarządzanie Członkami ---
 
         [HttpPost("{groupId}/members/{userId}")]
         public async Task<IActionResult> AddMember(int groupId, int userId)
