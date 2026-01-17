@@ -48,9 +48,9 @@ graph TD
     User((Użytkownik))
     
     subgraph "Docker Compose Network"
-        style Frontend fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-        style Backend fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-        style Db fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+        style Frontend fill:stroke:#01579b,stroke-width:2px
+        style Backend fill:stroke:#2e7d32,stroke-width:2px
+        style Db fill:stroke:#ef6c00,stroke-width:2px
 
         Frontend[Frontend<br/>React + Vite + TypeScript<br/>Port: 3000]
         Backend[Backend API<br/>ASP.NET Core 8.0<br/>Port: 5000]
