@@ -26,24 +26,48 @@ namespace SplitMate.Api.Controllers
                 .ToListAsync();
         }
 
+        // ====================================================================
+        // ZMODYFIKOWANA METODA CREATE Z TRANSAKCJĄ (ACID)
+        // ====================================================================
         [HttpPost]
         public async Task<ActionResult<ExpenseDto>> Create([FromBody] CreateExpenseDto dto)
         {
-            var expense = new Expense
+            // 1. Rozpoczynamy jawną transakcję bazodanową.
+            // Dzięki temu mamy pewność, że albo wszystko się zapisze, albo nic.
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
             {
-                Description = dto.Description,
-                Amount = dto.Amount,
-                GroupId = dto.GroupId,
-                PaidByUserId = dto.PaidByUserId,
-                SharedWithUsers = await _context.Users
-                    .Where(u => dto.SharedWithUserIds.Contains(u.Id))
-                    .ToListAsync()
-            };
+                var expense = new Expense
+                {
+                    Description = dto.Description,
+                    Amount = dto.Amount,
+                    GroupId = dto.GroupId,
+                    PaidByUserId = dto.PaidByUserId,
+                    // Pobieramy użytkowników z bazy, aby EF Core utworzył poprawne relacje w tabeli łączącej
+                    SharedWithUsers = await _context.Users
+                        .Where(u => dto.SharedWithUserIds.Contains(u.Id))
+                        .ToListAsync()
+                };
 
-            _context.Expenses.Add(expense);
-            await _context.SaveChangesAsync();
+                // 2. Dodajemy wydatek do kontekstu (w pamięci RAM)
+                _context.Expenses.Add(expense);
+                
+                // 3. Wykonujemy INSERT do bazy danych
+                await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetAll), MapToDto(expense));
+                // 4. Zatwierdzamy transakcję (COMMIT) - dopiero teraz dane są trwałe w bazie.
+                await transaction.CommitAsync();
+
+                return CreatedAtAction(nameof(GetAll), MapToDto(expense));
+            }
+            catch (Exception)
+            {
+                // 5. W razie jakiegokolwiek błędu wycofujemy zmiany (ROLLBACK).
+                // To zapobiega sytuacji, gdzie wydatek powstał, ale nie ma przypisanych ludzi.
+                await transaction.RollbackAsync();
+                throw; // Rzucamy błąd dalej, by API zwróciło 500
+            }
         }
 
         [HttpDelete("{id}")]
@@ -57,7 +81,7 @@ namespace SplitMate.Api.Controllers
             return NoContent();
         }
 
-        // Helper do mapowania (można przenieść do AutoMappera w przyszłości)
+        // Helper do mapowania encji na DTO
         private static ExpenseDto MapToDto(Expense e) => new()
         {
             Id = e.Id,

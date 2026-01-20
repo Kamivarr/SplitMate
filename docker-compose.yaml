@@ -1,25 +1,35 @@
 services:
+  # -----------------------------
+  # BACKEND (.NET 8 Web API)
+  # -----------------------------
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "5000:5000" # Mapowanie portu dla Swaggera i API
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      # Connection string wykorzystuje nazwę serwisu 'db' jako hosta
       - ConnectionStrings__DefaultConnection=Host=db;Database=splitmate;Username=postgres;Password=postgres
     depends_on:
       - db
 
+  # -----------------------------
+  # FRONTEND (React + Vite)
+  # -----------------------------
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - "3000:80" # Kontener wystawia Nginx na porcie 80, my mapujemy na 3000
     depends_on:
       - backend
 
+  # -----------------------------
+  # DATABASE (PostgreSQL)
+  # -----------------------------
   db:
     image: postgres:16-alpine
     environment:
@@ -27,9 +37,9 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: splitmate
     ports:
-      - "5433:5432"
+      - "5433:5432" # Zewnętrzny port 5433, aby nie gryzł się z lokalnym Postgres
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data # Trwałość danych (Persistence)
 
 volumes:
   pgdata:
