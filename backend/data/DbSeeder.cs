@@ -43,16 +43,18 @@ namespace SplitMate.Api.Data
 
             if (!context.Expenses.Any())
             {
-                // Upewniamy się, że użytkownik istnieje przed przypisaniem
+                // Upewniamy się, że użytkownicy istnieją przed przypisaniem
                 var kamil = await context.Users.FirstOrDefaultAsync(u => u.Login == "kamil");
-                if (kamil != null)
+                var anna = await context.Users.FirstOrDefaultAsync(u => u.Login == "anna"); // <--- Pobieramy Annę
+
+                if (kamil != null && anna != null) // <--- Sprawdzamy czy oboje istnieją
                 {
                     // Ponieważ nie mamy jeszcze grup w seedzie, tworzymy przykładową,
                     // aby wydatek miał poprawne GroupId (wymagane przez FK).
                     var group = new Group
                     {
                         Name = "Wyjazd w Tatry",
-                        Members = new List<User> { kamil }
+                        Members = new List<User> { kamil, anna } // <--- Dodajemy Annę do listy członków
                     };
                     context.Groups.Add(group);
                     await context.SaveChangesAsync(); // Zapisz grupę, by dostała ID

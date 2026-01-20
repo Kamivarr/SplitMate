@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SplitMate.Api.Data;
 using SplitMate.Api.Models;
+using SplitMate.Api.Services; // Dodano namespace dla AuthService
 using Microsoft.AspNetCore.Authorization;
 
 namespace SplitMate.Api.Controllers
@@ -36,22 +37,40 @@ namespace SplitMate.Api.Controllers
         }
 
         // ========================================================================
-        // DTO do tworzenia użytkownika
+        // DTO do tworzenia użytkownika (Rejestracja przez admina/API)
         // ========================================================================
         public class CreateUserDto
         {
-            public string Name { get; set; } = "";
+            public string Name { get; set; } = string.Empty;
+            public string Login { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
         }
 
         // ========================================================================
-        // POST /api/users
+        // POST /api/users - Pełna rejestracja z hashowaniem hasła
         // ========================================================================
+        [AllowAnonymous] // Opcjonalnie: odkomentuj, jeśli chcesz pozwolić na rejestrację bez logowania
         [HttpPost]
         public IActionResult Create([FromBody] CreateUserDto dto)
         {
+            // 1. Walidacja danych wejściowych
+            if (string.IsNullOrWhiteSpace(dto.Login) || string.IsNullOrWhiteSpace(dto.Password))
+                return BadRequest("Login i hasło są wymagane.");
+
+            // 2. Sprawdzenie unikalności loginu
+            if (_context.Users.Any(u => u.Login.ToLower() == dto.Login.ToLower()))
+                return BadRequest("Taki login jest już zajęty.");
+
+            // 3. Hashowanie hasła (zgodnie z logiką AuthService)
+            AuthService.CreatePasswordHash(dto.Password, out byte[] passwordHash, out byte[] passwordSalt);
+
+            // 4. Tworzenie encji użytkownika
             var user = new User
             {
-                Name = dto.Name
+                Name = dto.Name,
+                Login = dto.Login,
+                PasswordHash = passwordHash,
+                PasswordSalt = passwordSalt
             };
 
             _context.Users.Add(user);

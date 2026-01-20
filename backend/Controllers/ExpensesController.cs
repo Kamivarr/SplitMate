@@ -26,47 +26,39 @@ namespace SplitMate.Api.Controllers
                 .ToListAsync();
         }
 
-        // ====================================================================
-        // ZMODYFIKOWANA METODA CREATE Z TRANSAKCJĄ (ACID)
-        // ====================================================================
         [HttpPost]
         public async Task<ActionResult<ExpenseDto>> Create([FromBody] CreateExpenseDto dto)
         {
-            // 1. Rozpoczynamy jawną transakcję bazodanową.
-            // Dzięki temu mamy pewność, że albo wszystko się zapisze, albo nic.
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
+                // 1. Pobieramy płatnika "do ręki" przed utworzeniem wydatku
+                var payer = await _context.Users.FindAsync(dto.PaidByUserId);
+                if (payer == null) return BadRequest("Płatnik nie istnieje.");
+
                 var expense = new Expense
                 {
                     Description = dto.Description,
                     Amount = dto.Amount,
                     GroupId = dto.GroupId,
                     PaidByUserId = dto.PaidByUserId,
-                    // Pobieramy użytkowników z bazy, aby EF Core utworzył poprawne relacje w tabeli łączącej
+                    PaidByUser = payer, // Przypisujemy obiekt, żeby EF znał imię
                     SharedWithUsers = await _context.Users
                         .Where(u => dto.SharedWithUserIds.Contains(u.Id))
                         .ToListAsync()
                 };
 
-                // 2. Dodajemy wydatek do kontekstu (w pamięci RAM)
                 _context.Expenses.Add(expense);
-                
-                // 3. Wykonujemy INSERT do bazy danych
                 await _context.SaveChangesAsync();
-
-                // 4. Zatwierdzamy transakcję (COMMIT) - dopiero teraz dane są trwałe w bazie.
                 await transaction.CommitAsync();
 
                 return CreatedAtAction(nameof(GetAll), MapToDto(expense));
             }
             catch (Exception)
             {
-                // 5. W razie jakiegokolwiek błędu wycofujemy zmiany (ROLLBACK).
-                // To zapobiega sytuacji, gdzie wydatek powstał, ale nie ma przypisanych ludzi.
                 await transaction.RollbackAsync();
-                throw; // Rzucamy błąd dalej, by API zwróciło 500
+                throw;
             }
         }
 
@@ -81,7 +73,7 @@ namespace SplitMate.Api.Controllers
             return NoContent();
         }
 
-        // Helper do mapowania encji na DTO
+        // --- MAPOWANIE (TŁUMACZENIE) ---
         private static ExpenseDto MapToDto(Expense e) => new()
         {
             Id = e.Id,
@@ -89,7 +81,9 @@ namespace SplitMate.Api.Controllers
             Amount = e.Amount,
             GroupId = e.GroupId,
             PaidByUserId = e.PaidByUserId,
-            PaidByUserName = e.PaidByUser?.Name ?? "Nieznany",
+            // Tutaj wyciągamy imię z obiektu bazy danych do stringa dla Frontendu
+            PaidByUserName = e.PaidByUser?.Name ?? "Nieznany", 
+            IsSettlement = e.IsSettlement,
             SharedWithUsers = e.SharedWithUsers.Select(u => new UserDto { Id = u.Id, Name = u.Name }).ToList()
         };
 
@@ -107,7 +101,8 @@ namespace SplitMate.Api.Controllers
             public decimal Amount { get; set; }
             public int GroupId { get; set; }
             public int PaidByUserId { get; set; }
-            public string PaidByUserName { get; set; } = "";
+            public string PaidByUserName { get; set; } = ""; 
+            public bool IsSettlement { get; set; }
             public List<UserDto> SharedWithUsers { get; set; } = new();
         }
 
